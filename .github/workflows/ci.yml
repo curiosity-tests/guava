@@ -45,7 +45,7 @@ permissions:
 
 # Cancel in-progress runs for pull requests, but not for master branch pushes
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}-${{ inputs.leg || github.event_name }}
   cancel-in-progress: true
 
 run-name: "CI ${{ inputs.leg || 'push' }} ${{ inputs.racecar_run }}"
