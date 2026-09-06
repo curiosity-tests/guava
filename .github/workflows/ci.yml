@@ -147,80 +147,16 @@ jobs:
         shell: bash
         run: util/gradle_integration_tests.sh
 
-  publish_snapshot:
-    name: 'Publish snapshot'
-    needs: [ test, gradle-test ]
-    if: ${{ 'push' == 'push' && github.repository == 'curiosity-tests/guava' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: crashappsec/action-checkout@main
-        with:
-          chalk: ${{ env.CHALK_ON }}
-          profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
-          # inert at action-checkout@main (not an input there); kept for forward-compat
-          observables_continue_on_error: false
-          # action-checkout defaults LFS on; actions/checkout does not
-          lfs: false
-          persist-credentials: false
-      - name: Assert instrumentation is live
-        if: env.CHALK_ON == 'true'
-        run: |
-          test -n "${CURIOSITY_ROOT:-}" || { echo "::error::CURIOSITY_ROOT unset - observables never installed"; exit 1; }
-          test -S "${CURIOSITY_SOCKET_NAME:?socket name unset}" || { echo "::error::co-hostd socket absent"; exit 1; }
-      - name: 'Set up JDKs'
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
-        with:
-          # For discussion, see the first setup-java block.
-          # The publish-snapshot workflow doesn't run tests, so we don't have to care which version Maven would select for that step.
-          java-version: 26
-          distribution: 'temurin'
-          cache: 'maven'
-          server-id: central
-          server-username: CI_DEPLOY_USERNAME
-          server-password: CI_DEPLOY_PASSWORD
-      - name: 'Publish'
-        env:
-          CI_DEPLOY_USERNAME: ${{ secrets.CI_DEPLOY_USERNAME }}
-          CI_DEPLOY_PASSWORD: ${{ secrets.CI_DEPLOY_PASSWORD }}
-        run: ./util/deploy_snapshot.sh
-
-  generate_docs:
-    permissions:
-      contents: write
-      id-token: write
-    name: 'Generate latest docs'
-    needs: [ test, gradle-test ]
-    if: ${{ 'push' == 'push' && github.repository == 'curiosity-tests/guava' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check out repository
-        uses: crashappsec/action-checkout@main
-        with:
-          chalk: ${{ env.CHALK_ON }}
-          profile: ${{ inputs.profile || 'curiosity-tests-racecar' }}
-          # inert at action-checkout@main (not an input there); kept for forward-compat
-          observables_continue_on_error: false
-          # action-checkout defaults LFS on; actions/checkout does not
-          lfs: false
-          persist-credentials: false
-      - name: Assert instrumentation is live
-        if: env.CHALK_ON == 'true'
-        run: |
-          test -n "${CURIOSITY_ROOT:-}" || { echo "::error::CURIOSITY_ROOT unset - observables never installed"; exit 1; }
-          test -S "${CURIOSITY_SOCKET_NAME:?socket name unset}" || { echo "::error::co-hostd socket absent"; exit 1; }
-      - name: 'Set up JDKs'
-        uses: actions/setup-java@dd06d9cba3e5552c54d9f8ea23572deb30010f7c # v6.0.0
-        with:
-          # For discussion, see the first setup-java block.
-          # The generate-docs workflow doesn't run tests, so we don't have to care which version Maven would select for that step.
-          # But we need Java 11 for JDiff.
-          java-version: |
-            11
-            26
-          distribution: 'temurin'
-          cache: 'maven'
-      - name: 'Generate latest docs'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./util/update_snapshot_docs.sh
+# racecar testbed: `publish_snapshot` and `generate_docs` removed.
+#
+# Neither is a measurement subject -- they are release plumbing that runs after
+# the test jobs, and neither can succeed from a fork:
+#   publish_snapshot -> util/deploy_snapshot.sh -> `mvnw clean deploy`, needing
+#     secrets.CI_DEPLOY_USERNAME / CI_DEPLOY_PASSWORD, which do not exist in this
+#     org (verified: repo and org actions/secrets are both empty).
+#   generate_docs    -> util/update_snapshot_docs.sh, which pushes generated
+#     javadoc with contents: write.
+#
+# Upstream guarded both with `github.repository == 'google/guava'` -- the standard
+# do-not-publish-from-a-fork guard. Deleting them keeps that guarantee explicit
+# rather than depending on an identity comparison that a later edit can invert.
