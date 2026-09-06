@@ -150,7 +150,7 @@ jobs:
   publish_snapshot:
     name: 'Publish snapshot'
     needs: [ test, gradle-test ]
-    if: github.event_name == 'push' && github.repository == 'google/guava'
+    if: ${{ 'push' == 'push' && github.repository == 'curiosity-tests/guava' }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -191,7 +191,7 @@ jobs:
       id-token: write
     name: 'Generate latest docs'
     needs: [ test, gradle-test ]
-    if: github.event_name == 'push' && github.repository == 'google/guava'
+    if: ${{ 'push' == 'push' && github.repository == 'curiosity-tests/guava' }}
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
